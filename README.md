@@ -59,7 +59,7 @@ The core implementation is scraper-first: it navigates Calendly's calendar UI in
 - browserless.io for headless Chromium function execution.
 - Playwright/Puppeteer-compatible scraping approach via DOM automation.
 
-## Frontend (Brief)
+## Frontend
 
 The frontend is a React + Vite + Tailwind interface that submits scrape requests and displays returned availability in a calendar view with day-level slot details.
 
