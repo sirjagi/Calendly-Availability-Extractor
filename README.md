@@ -1,37 +1,43 @@
 # Calendly Availability Extractor
 
-Extracts availability from a public Calendly event page.
+This project extracts scheduling availability from a public Calendly event page.
 
-It accepts a Calendly URL, scrapes available dates and time slots for a selected number of weeks, and displays the results in a calendar-style UI.
+The core implementation is scraper-first: it navigates Calendly's calendar UI in a headless browser, reads day-level availability and slot lists, and returns structured JSON.
 
-## What It Does
+## Scraping Architecture
 
-- Accepts a public Calendly event URL.
-- Pulls available and unavailable days for a selected week range.
-- Displays results in a simple calendar UI with selectable days and visible time slots.
+- Runtime trigger: a POST request containing `calendlyUrl` and `weeks`.
+- Local entrypoint: Node.js + Express backend.
+- Production execution path: AWS Lambda invokes browserless.io (Chromium Function API) to run scraping code remotely.
+- Data source: Calendly's rendered DOM (calendar header, day buttons, and spot list elements).
 
-## How It Works
+## Scraping Logic and Approach
 
-1. A user submits a Calendly URL from the web app.
-2. The app requests availability data from the API layer.
-3. In production, the request is handled by AWS Lambda, which executes the browserless.io call used to run the scraping logic in a headless browser environment.
-4. Extracted availability is returned and rendered as an interactive calendar.
+1. Compute date boundaries.
+   - Start at next Monday.
+   - End at `start + (7 * weeks - 1)`.
+2. Open the Calendly event page in a headless Chromium session.
+3. Wait for calendar readiness using stable `data-testid` selectors.
+4. Iterate the calendar grid month-by-month.
+5. For each day button:
+   - Confirm the cell belongs to the visible month.
+   - Skip days before the computed start.
+   - Detect disabled/enabled state.
+6. For enabled days:
+   - Click the day.
+   - Read slot entries from the rendered spot list.
+7. Build a normalized response object grouped by year and month.
+8. Stop once the configured end date has been processed.
 
-## Key Technologies and Approaches
+## Data Extraction Strategy
 
-- React + TypeScript for the frontend experience.
-- Vite + Tailwind CSS for fast UI development and styling.
-- Node.js + Express for local API development.
-- AWS Lambda for serverless production execution.
-- Browserless.io (Chromium Function API) for headless browser automation.
-- DOM-based and dynamic extraction approach that reads Calendly calendar state and slot lists.
+- Selector-driven parsing over the live page DOM.
+- Availability represented as:
+  - day with `timeSlots` when open
+  - day with only `monthDay` when unavailable
+- Month navigation continues until the requested range is fully captured.
 
-## Repository Structure
-
-- frontend: user interface and API client.
-- backend: local Express server and scraper modules.
-
-## Example Response
+## Response Shape
 
 ```json
 {
@@ -45,9 +51,19 @@ It accepts a Calendly URL, scrapes available dates and time slots for a selected
 }
 ```
 
-## Local Development
+## Key Technologies
 
-Install and run both apps:
+- TypeScript across frontend and backend.
+- Node.js + Express for local API orchestration.
+- AWS Lambda for serverless production execution.
+- browserless.io for headless Chromium function execution.
+- Playwright/Puppeteer-compatible scraping approach via DOM automation.
+
+## Frontend (Brief)
+
+The frontend is a React + Vite + Tailwind interface that submits scrape requests and displays returned availability in a calendar view with day-level slot details.
+
+## Local Development
 
 ```bash
 cd backend
@@ -60,9 +76,3 @@ cd frontend
 npm install
 npm run dev
 ```
-
-## Notes
-
-- Development mode typically uses the local Express API.
-- Production mode is configured to call AWS Lambda.
-- The Lambda path is where the browserless.io execution is used.
