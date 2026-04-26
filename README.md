@@ -1,6 +1,6 @@
-# Calendly Scraper
+# Calendly Availability Extractor
 
-Calendly Scraper extracts availability from a public Calendly event page.
+Extracts availability from a public Calendly event page.
 
 It accepts a Calendly URL, scrapes available dates and time slots for a selected number of weeks, and displays the results in a calendar-style UI.
 
